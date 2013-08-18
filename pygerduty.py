@@ -103,14 +103,47 @@ class Collection(object):
             entities.append(self.container(self, **entity))
         return entities
 
-    def list(self, **kwargs):
+    def list_all(self, **kwargs):
+        """Convenience function to handle pagination when getting all values"""
+
+        kwargs['date_range'] = 'all'
+        kwargs['offset'] = 0
+        kwargs['limit'] = 100
+        entities = []
+        response = self.list(full_response=True, **kwargs)
+        total = response.get('total')
+        limit = response.get('limit')
+        offset = response.get('offset')
+
+        while (limit+offset <= total):
+            print ("Reading %s entries starting at %s, %s total" % (
+                limit, offset, total))
+            entities.extend(self._list_response(response))
+            kwargs['offset'] = offset + limit
+            response = self.list(full_response=True, **kwargs)
+            total = response.get('total')
+            limit = response.get('limit')
+            offset = response.get('offset')
+
+        print ("Reading %s entries starting at %s, %s total" % (
+            limit, offset, total))
+        entities.extend(self._list_response(response))
+
+        return entities
+
+
+    def list(self, full_response=False, **kwargs):
+        """If full_response is true, the whole response is returned"""
         path = self.name
         if self.base_container:
             path = "%s/%s/%s" % (
                 self.base_container.collection.name,
                 self.base_container.id, self.name)
         response = self.pagerduty.request("GET", path, query_params=kwargs)
-        return self._list_response(response)
+        if full_response:
+            return response
+        else:
+            return self._list_response(response)
 
     def count(self, **kwargs):
         path = "%s/count" % self.name
