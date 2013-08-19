@@ -1,3 +1,4 @@
+import datetime
 import urllib
 import urllib2
 import urlparse
@@ -103,10 +104,17 @@ class Collection(object):
             entities.append(self.container(self, **entity))
         return entities
 
-    def list_all(self, **kwargs):
-        """Convenience function to handle pagination when getting all values"""
+    def list_all(self, since=None, until=None, date_range=all, **kwargs):
+        """Convenience function to handle pagination when getting all values
 
-        kwargs['date_range'] = 'all'
+        If since is provided, date_range is ignored."""
+
+        if since:
+            until = until or datetime.datetime.now().isoformat()
+            kwargs['since'] = since
+            kwargs['until'] = until
+        else:
+            kwargs['date_range'] = 'all'
         kwargs['offset'] = 0
         kwargs['limit'] = 100
         entities = []
